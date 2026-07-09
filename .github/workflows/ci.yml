@@ -11,10 +11,13 @@ on:
     branches: [main]
 
 env:
+  # dev: PAT トークン認証
   DATABRICKS_HOST_DEV: ${{ secrets.DATABRICKS_HOST_DEV }}
   DATABRICKS_TOKEN_DEV: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+  # prod: サービスプリンシパル OAuth 認証
   DATABRICKS_HOST_PROD: ${{ secrets.DATABRICKS_HOST_PROD }}
-  DATABRICKS_TOKEN_PROD: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+  DATABRICKS_CLIENT_ID_PROD: ${{ secrets.DATABRICKS_CLIENT_ID_PROD }}
+  DATABRICKS_CLIENT_SECRET_PROD: ${{ secrets.DATABRICKS_CLIENT_SECRET_PROD }}
 
 jobs:
   # ============================================================
@@ -76,11 +79,15 @@ jobs:
       - name: Validate bundle (prod)
         env:
           DATABRICKS_HOST: ${{ env.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID_PROD }}
+          DATABRICKS_CLIENT_SECRET: ${{ env.DATABRICKS_CLIENT_SECRET_PROD }}
+          BUNDLE_VAR_service_principal_name: ${{ env.DATABRICKS_CLIENT_ID_PROD }}
         run: databricks bundle validate -t prod
 
       - name: Deploy to prod
         env:
           DATABRICKS_HOST: ${{ env.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID_PROD }}
+          DATABRICKS_CLIENT_SECRET: ${{ env.DATABRICKS_CLIENT_SECRET_PROD }}
+          BUNDLE_VAR_service_principal_name: ${{ env.DATABRICKS_CLIENT_ID_PROD }}
         run: databricks bundle deploy -t prod

@@ -36,4 +36,5 @@ targets:
       catalog: rongzi_catalog_prod
       warehouse_id: "2de86c7224b538e6"  # TODO: prod用ウェアハウスIDに置換
     run_as:
+      # CI/CD で環境変数 BUNDLE_VAR_service_principal_name として注入
       service_principal_name: ${var.service_principal_name}
