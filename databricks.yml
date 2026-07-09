@@ -34,6 +34,6 @@ targets:
       root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: rongzi_catalog_prod
-      warehouse_id: "2de86c7224b538e6"  # TODO: prod用ウェアハウスIDに置換
+      warehouse_id: "148ccb90800933a1"
     run_as:
       service_principal_name: ddfaadc5-9857-473b-88a8-2a5b1043d98e
