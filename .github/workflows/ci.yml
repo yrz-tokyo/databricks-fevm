@@ -1,5 +1,5 @@
 # SCM DataOps CI/CD Pipeline
-# PR時: validate + dev deploy + integration test
+# PR時: unit test + validate + dev deploy + integration test
 # mainマージ時: prod deploy
 
 name: SCM DataOps CI/CD
@@ -18,7 +18,7 @@ env:
 
 jobs:
   # ============================================================
-  # PR時: バリデーション + dev統合テスト
+  # PR時: ユニットテスト + バリデーション + dev統合テスト
   # ============================================================
   validate-and-test:
     if: github.event_name == 'pull_request'
@@ -26,6 +26,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # --- ユニットテスト（Databricks 不要・数秒で完了）---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run unit tests
+        run: pytest tests/ -v
+
+      # --- バンドル検証 + デプロイ + 統合テスト ---
       - name: Install Databricks CLI
         uses: databricks/setup-cli@main
 
