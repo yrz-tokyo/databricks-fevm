@@ -1,0 +1,39 @@
+# SCM デモ環境 - Declarative Automation Bundles 設定
+# dev / prod のターゲットでカタログ・ウェアハウスを分離する
+# 両ワークスペースは同じ Unity Catalog メタストアを共有
+
+bundle:
+  name: scm_dataops_demo
+
+variables:
+  catalog:
+    description: "ターゲット環境のUnity Catalogカタログ名"
+    default: rongzi_catalog
+  warehouse_id:
+    description: "ターゲット環境のSQL Warehouse ID"
+    default: ""
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://fevm-rongzi-serverless-fevm-aws.cloud.databricks.com
+      root_path: ~/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: rongzi_catalog
+      warehouse_id: "2de86c7224b538e6"
+
+  prod:
+    mode: production
+    workspace:
+      host: https://prod-workspace.cloud.databricks.com  # TODO: prod ワークスペースURLに置換
+      root_path: ~/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: rongzi_catalog_prod
+      warehouse_id: "2de86c7224b538e6"  # TODO: prod用ウェアハウスIDに置換
+    run_as:
+      service_principal_name: ${var.service_principal_name}

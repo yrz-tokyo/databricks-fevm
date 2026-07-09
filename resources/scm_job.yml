@@ -1,0 +1,53 @@
+# SCM 日次オーケストレーションジョブ リソース定義
+
+resources:
+  jobs:
+    scm_daily_orchestration:
+      name: "SCM Daily Orchestration"
+      schedule:
+        quartz_cron_expression: "0 0 8 * * ?"
+        timezone_id: Asia/Tokyo
+        pause_status: UNPAUSED
+      email_notifications:
+        on_failure:
+          - ${var.alert_email}
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+      tasks:
+        - task_key: generate_data
+          notebook_task:
+            notebook_path: ../src/generate_data.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+          timeout_seconds: 600
+
+        - task_key: update_pipeline
+          depends_on:
+            - task_key: generate_data
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.scm_medallion_pipeline.id}
+            full_refresh: false
+          timeout_seconds: 1800
+
+        - task_key: validate
+          depends_on:
+            - task_key: update_pipeline
+          notebook_task:
+            notebook_path: ../src/validate_pipeline.py
+            source: WORKSPACE
+            # warehouse_id はSQLノートブック専用。Pythonノートブックはサーバーレスコンピュートで実行。
+            # SQL版に変換する場合: warehouse_id: ${var.warehouse_id}
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+          timeout_seconds: 600
+
+variables:
+  alert_email:
+    description: "検証失敗時の通知先メールアドレス"
+    default: rongzi.yan@databricks.com
+  service_principal_name:
+    description: "prod環境のサービスプリンシパル名"
+    default: ""

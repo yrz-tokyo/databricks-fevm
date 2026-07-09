@@ -1,0 +1,22 @@
+# SCM メダリオンパイプライン リソース定義
+
+resources:
+  pipelines:
+    scm_medallion_pipeline:
+      name: "SCM Medallion Pipeline"
+      catalog: ${var.catalog}
+      schema: scm_bronze
+      serverless: true
+      channel: CURRENT
+      configuration:
+        # DAB変数 → パイプライン設定 → SQL内 ${catalog_name} で参照
+        catalog_name: ${var.catalog}
+        # warehouse_id: SQL Warehouse を使う場合に指定（serverless時は不要）
+        # pipelines.warehouse.id: ${var.warehouse_id}
+      libraries:
+        - file:
+            path: ../transformations/bronze.sql
+        - file:
+            path: ../transformations/silver.sql
+        - file:
+            path: ../transformations/gold.sql
