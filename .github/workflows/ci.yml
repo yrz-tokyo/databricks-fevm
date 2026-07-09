@@ -1,5 +1,5 @@
 # SCM DataOps CI/CD Pipeline
-# PR時: validate + dev deploy + integration test
+# PR時: unit test + validate + dev deploy + integration test
 # mainマージ時: prod deploy
 
 name: SCM DataOps CI/CD
@@ -11,14 +11,18 @@ on:
     branches: [main]
 
 env:
+  # dev: サービスプリンシパル OAuth 認証
   DATABRICKS_HOST_DEV: ${{ secrets.DATABRICKS_HOST_DEV }}
-  DATABRICKS_TOKEN_DEV: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+  DATABRICKS_CLIENT_ID_DEV: ${{ secrets.DATABRICKS_CLIENT_ID_DEV }}
+  DATABRICKS_CLIENT_SECRET_DEV: ${{ secrets.DATABRICKS_CLIENT_SECRET_DEV }}
+  # prod: サービスプリンシパル OAuth 認証
   DATABRICKS_HOST_PROD: ${{ secrets.DATABRICKS_HOST_PROD }}
-  DATABRICKS_TOKEN_PROD: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+  DATABRICKS_CLIENT_ID_PROD: ${{ secrets.DATABRICKS_CLIENT_ID_PROD }}
+  DATABRICKS_CLIENT_SECRET_PROD: ${{ secrets.DATABRICKS_CLIENT_SECRET_PROD }}
 
 jobs:
   # ============================================================
-  # PR時: バリデーション + dev統合テスト
+  # PR時: ユニットテスト + バリデーション + dev統合テスト
   # ============================================================
   validate-and-test:
     if: github.event_name == 'pull_request'
@@ -26,25 +30,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # --- ユニットテスト（Databricks 不要・数秒で完了）---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run unit tests
+        run: pytest tests/ -v
+
+      # --- バンドル検証 + デプロイ + 統合テスト ---
       - name: Install Databricks CLI
         uses: databricks/setup-cli@main
 
       - name: Validate bundle (dev)
         env:
           DATABRICKS_HOST: ${{ env.DATABRICKS_HOST_DEV }}
-          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN_DEV }}
+          DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID_DEV }}
+          DATABRICKS_CLIENT_SECRET: ${{ env.DATABRICKS_CLIENT_SECRET_DEV }}
         run: databricks bundle validate -t dev
 
       - name: Deploy to dev
         env:
           DATABRICKS_HOST: ${{ env.DATABRICKS_HOST_DEV }}
-          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN_DEV }}
+          DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID_DEV }}
+          DATABRICKS_CLIENT_SECRET: ${{ env.DATABRICKS_CLIENT_SECRET_DEV }}
         run: databricks bundle deploy -t dev
 
       - name: Run integration test (dev job)
         env:
           DATABRICKS_HOST: ${{ env.DATABRICKS_HOST_DEV }}
-          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN_DEV }}
+          DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID_DEV }}
+          DATABRICKS_CLIENT_SECRET: ${{ env.DATABRICKS_CLIENT_SECRET_DEV }}
         run: |
           databricks bundle run scm_daily_orchestration -t dev --wait
 
@@ -63,11 +83,15 @@ jobs:
       - name: Validate bundle (prod)
         env:
           DATABRICKS_HOST: ${{ env.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID_PROD }}
+          DATABRICKS_CLIENT_SECRET: ${{ env.DATABRICKS_CLIENT_SECRET_PROD }}
+          BUNDLE_VAR_service_principal_name: ${{ env.DATABRICKS_CLIENT_ID_PROD }}
         run: databricks bundle validate -t prod
 
       - name: Deploy to prod
         env:
           DATABRICKS_HOST: ${{ env.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ env.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID_PROD }}
+          DATABRICKS_CLIENT_SECRET: ${{ env.DATABRICKS_CLIENT_SECRET_PROD }}
+          BUNDLE_VAR_service_principal_name: ${{ env.DATABRICKS_CLIENT_ID_PROD }}
         run: databricks bundle deploy -t prod

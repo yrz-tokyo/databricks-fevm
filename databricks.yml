@@ -30,10 +30,11 @@ targets:
   prod:
     mode: production
     workspace:
-      host: https://prod-workspace.cloud.databricks.com  # TODO: prod ワークスペースURLに置換
+      host: https://adb-984752964297111.11.azuredatabricks.net
       root_path: ~/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: rongzi_catalog_prod
       warehouse_id: "2de86c7224b538e6"  # TODO: prod用ウェアハウスIDに置換
     run_as:
+      # CI/CD で環境変数 BUNDLE_VAR_service_principal_name として注入
       service_principal_name: ${var.service_principal_name}
